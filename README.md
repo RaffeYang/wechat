@@ -28,7 +28,7 @@ A [Raycast](https://www.raycast.com) extension for Wechat to quickly search your
 
 `Command + Shift + p` Pin Wechat Contact / 置顶好友
 
-`Command + Shift + x` Clear Search History / 清楚好友搜索记录
+`Command + Shift + x` Clear Search History / 清除好友搜索记录
 
 ## How to Use
 
