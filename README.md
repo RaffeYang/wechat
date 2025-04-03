@@ -33,8 +33,9 @@ A [Raycast](https://www.raycast.com) extension for Wechat to quickly search your
 ## How to Use
 
 - Raycast Store
+
 <p align="center">
-<a href="https://www.raycast.com/raffeyang/Wechat"><img src="https://www.raycast.com/raffeyang/Wechat/install_button@2x.png" height="64" style="height: 64px;" alt=""></a>
+<a title="Install wechat Raycast Extension" href="https://www.raycast.com/raffeyang/wechat"><img src="https://www.raycast.com/raffeyang/wechat/install_button@2x.png?v=1.1" height="64" style="height: 64px;" alt=""></a>
 </p>
 
 - Manual Install
