@@ -24,7 +24,11 @@ A [Raycast](https://www.raycast.com) extension for Wechat to quickly search your
 ## Shortcuts
 `Enter` Open Wechat Contact / 打开微信好友
 
-`Command + C`Copy Wechat Contact ID / 复制微信好友ID
+`Command + c`Copy Wechat Contact ID / 复制微信好友ID
+
+`Command + Shift + p` Pin Wechat Contact / 置顶好友
+
+`Command + Shift + x` Clear Search History / 清楚好友搜索记录
 
 ## How to Use
 

@@ -65,7 +65,12 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
               onAction={onTogglePin}
               shortcut={{ modifiers: ["cmd", "shift"], key: "p" }}
             />
-            <Action icon={Icon.Trash} title="Clear Search History" onAction={onClearHistory} />
+            <Action
+              icon={Icon.Trash}
+              title="Clear Search History"
+              onAction={onClearHistory}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "x" }}
+            />
             <Action.OpenInBrowser
               title="Feature Request"
               url="https://github.com/raffeyang/wechat"
