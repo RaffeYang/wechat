@@ -35,7 +35,7 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
   return (
     <List.Item
       title={title}
-      subtitle={searchResult.subtitle}
+      // subtitle={searchResult.subtitle}
       accessories={[
         {
           text: searchResult.arg,
