@@ -40,7 +40,7 @@ A [Raycast](https://www.raycast.com) extension for Wechat to quickly search your
 
 - Manual Install
 
-`npm install && npx ray develop`
+`npm install && npm run dev`
 
 ## License
 
