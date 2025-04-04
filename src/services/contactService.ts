@@ -1,7 +1,7 @@
 import fetch, { AbortError } from "node-fetch";
 import { URLSearchParams } from "url";
 import { SearchResult } from "../types";
-import { isWeChatRunning } from "../utils/isWeChatRunning";
+import { WeChatManager } from "../utils/wechatManager";
 import { wechatService } from "./wechatService";
 
 const SEARCHURL = "http://localhost:48065/wechat/search";
@@ -63,7 +63,7 @@ class ContactService {
           if (aExactMatch && !bExactMatch) return -1;
           if (!aExactMatch && bExactMatch) return 1;
 
-          // The first match is the second
+          // Starts-with matches have the second highest priority
           const aStartsWith = aTitle.startsWith(lowerSearchText) || aSubtitle.startsWith(lowerSearchText);
           const bStartsWith = bTitle.startsWith(lowerSearchText) || bSubtitle.startsWith(lowerSearchText);
           if (aStartsWith && !bStartsWith) return -1;
@@ -84,7 +84,9 @@ class ContactService {
     } catch (error) {
       console.error("API search failed:", error);
       if (!(error instanceof AbortError)) {
-        await isWeChatRunning();
+        if (!WeChatManager.isWeChatRunning()) {
+          throw new Error("WeChat is not running");
+        }
       }
       throw error;
     }

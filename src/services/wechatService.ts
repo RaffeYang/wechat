@@ -1,3 +1,4 @@
+import { showFailureToast } from "@raycast/utils";
 import fetch from "node-fetch";
 
 const STARTURL = "http://localhost:48065/wechat/start";
@@ -12,7 +13,12 @@ class WeChatService {
    */
   async startChat(contactId: string): Promise<void> {
     const url = this.getStartUrl(contactId);
-    await fetch(url);
+    try {
+      await fetch(url);
+    } catch (error) {
+      showFailureToast(error, { title: "Failed to start WeChat chat" });
+      throw error;
+    }
   }
 
   /**
@@ -21,7 +27,7 @@ class WeChatService {
    * @returns URL to start chat
    */
   getStartUrl(contactId: string): string {
-    return `${STARTURL}?session=${contactId}`;
+    return `${STARTURL}?session=${encodeURIComponent(contactId)}`;
   }
 }
 
