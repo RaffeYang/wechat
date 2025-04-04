@@ -14,12 +14,11 @@ A [Raycast](https://www.raycast.com) extension for WeChat to quickly search your
 ## Features
 
 - [x] Search Contact / 搜索微信通讯录好友
-- [x] List Search Contact Numbers / 显示检索的好友数量
 - [x] Open Contact / 打开微信好友
 - [x] List WeChat ID / 显示好友微信ID
-- [x] Copy WeChat ID / 复制微信ID
 - [x] Display Avatar / 显示微信头像
-- [x] Detect if WeChat & WeChatExtension is installed / 检测微信以及WeChatExtension是否安装
+- [x] Pinned Contacts / 置顶好友
+- [x] Recent Contacts / 最近联系人
 - [x] Support fuzzy Query / 微信通讯录模糊查询
 - [x] Manage WeChatTweak / 管理WeChatTweak
 
