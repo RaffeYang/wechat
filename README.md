@@ -21,6 +21,7 @@ A [Raycast](https://www.raycast.com) extension for WeChat to quickly search your
 - [x] Display Avatar / 显示微信头像
 - [x] Detect if WeChat & WeChatExtension is installed / 检测微信以及WeChatExtension是否安装
 - [x] Support fuzzy Query / 微信通讯录模糊查询
+- [x] Manage WeChatTweak / 管理WeChatTweak
 
 ## Shortcuts
 `Enter` Open WeChat Contact / 打开微信好友
