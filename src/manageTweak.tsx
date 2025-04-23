@@ -21,7 +21,21 @@ function ManageTweak() {
     isWeChatServiceRunning: false,
   });
 
+  const patchPath = () => {
+    if (!process.env.PATH || process.env.PATH === "") {
+      process.env.PATH = [
+        "/opt/homebrew/bin", // Apple Silicon Mac 常见
+        "/usr/local/bin", // Intel Mac 常见
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin",
+      ].join(":");
+    }
+  };
+
   useEffect(() => {
+    patchPath();
     checkStatus();
   }, []);
 
