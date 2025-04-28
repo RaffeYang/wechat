@@ -1,14 +1,14 @@
-import { Action, ActionPanel, Color, Icon, List, Toast, confirmAlert, open, showToast } from "@raycast/api";
-import { useEffect, useState } from "react";
-import { WeChatManager } from "./utils/wechatManager";
+import { Action, ActionPanel, Color, Icon, List, Toast, confirmAlert, open, showToast } from "@raycast/api"
+import { useEffect, useState } from "react"
+import { WeChatManager } from "./utils/wechatManager"
 
 interface StateType {
-  isLoading: boolean;
-  isWeChatInstalled: boolean;
-  isWeChatRunning: boolean;
-  isWeChatTweakInstalled: boolean;
-  isHomebrewInstalled: boolean;
-  isWeChatServiceRunning: boolean;
+  isLoading: boolean
+  isWeChatInstalled: boolean
+  isWeChatRunning: boolean
+  isWeChatTweakInstalled: boolean
+  isHomebrewInstalled: boolean
+  isWeChatServiceRunning: boolean
 }
 
 function ManageTweak() {
@@ -19,7 +19,7 @@ function ManageTweak() {
     isWeChatTweakInstalled: false,
     isHomebrewInstalled: false,
     isWeChatServiceRunning: false,
-  });
+  })
 
   const patchPath = () => {
     if (!process.env.PATH || process.env.PATH === "") {
@@ -30,17 +30,17 @@ function ManageTweak() {
         "/bin",
         "/usr/sbin",
         "/sbin",
-      ].join(":");
+      ].join(":")
     }
-  };
+  }
 
   useEffect(() => {
-    patchPath();
-    checkStatus();
-  }, []);
+    patchPath()
+    checkStatus()
+  }, [])
 
   const checkStatus = async () => {
-    setState((prev) => ({ ...prev, isLoading: true }));
+    setState((prev) => ({ ...prev, isLoading: true }))
     try {
       const [isHomebrewInstalled, isWeChatInstalled, isWeChatRunning, isWeChatTweakInstalled, isWeChatServiceRunning] =
         await Promise.all([
@@ -49,7 +49,7 @@ function ManageTweak() {
           WeChatManager.isWeChatRunning(),
           WeChatManager.isWeChatTweakInstalled(),
           WeChatManager.isWeChatServiceRunning(),
-        ]);
+        ])
 
       setState({
         isLoading: false,
@@ -58,17 +58,17 @@ function ManageTweak() {
         isWeChatRunning,
         isWeChatTweakInstalled,
         isWeChatServiceRunning,
-      });
+      })
     } catch (error) {
-      console.error("Error checking status:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
+      console.error("Error checking status:", error)
+      setState((prev) => ({ ...prev, isLoading: false }))
       await showToast({
         style: Toast.Style.Failure,
         title: "Error checking status",
         message: String(error),
-      });
+      })
     }
-  };
+  }
 
   const handleInstallHomebrew = async () => {
     try {
@@ -78,12 +78,12 @@ function ManageTweak() {
         primaryAction: {
           title: "Open Installation Page",
         },
-      });
-      await open("https://brew.sh");
+      })
+      await open("https://brew.sh")
     } catch (error) {
-      console.error("Failed to open Homebrew page:", error);
+      console.error("Failed to open Homebrew page:", error)
     }
-  };
+  }
 
   const handleInstallWeChat = async () => {
     try {
@@ -93,21 +93,21 @@ function ManageTweak() {
         primaryAction: {
           title: "Open Download Page",
         },
-      });
-      await open("https://www.wechat.com");
+      })
+      await open("https://www.wechat.com")
     } catch (error) {
-      console.error("Failed to open WeChat download page:", error);
+      console.error("Failed to open WeChat download page:", error)
     }
-  };
+  }
 
   const handleStartWeChat = async () => {
     try {
-      await WeChatManager.startWeChat();
-      setTimeout(checkStatus, 1000);
+      await WeChatManager.startWeChat()
+      setTimeout(checkStatus, 1000)
     } catch (error) {
-      console.error("Failed to start WeChat:", error);
+      console.error("Failed to start WeChat:", error)
     }
-  };
+  }
 
   const handleInstallTweak = async () => {
     try {
@@ -118,19 +118,19 @@ function ManageTweak() {
         primaryAction: {
           title: "Install",
         },
-      });
+      })
 
       await showToast({
         style: Toast.Style.Animated,
         title: "Installing WeChatTweak...",
-      });
+      })
 
-      await WeChatManager.installWeChatTweak();
-      await checkStatus();
+      await WeChatManager.installWeChatTweak()
+      await checkStatus()
     } catch (error) {
-      console.error("Failed to install WeChatTweak:", error);
+      console.error("Failed to install WeChatTweak:", error)
     }
-  };
+  }
 
   const handleUninstallTweak = async () => {
     try {
@@ -141,28 +141,28 @@ function ManageTweak() {
         primaryAction: {
           title: "Uninstall",
         },
-      });
+      })
 
       await showToast({
         style: Toast.Style.Animated,
         title: "Uninstalling WeChatTweak...",
-      });
+      })
 
-      await WeChatManager.uninstallWeChatTweak();
-      await checkStatus();
+      await WeChatManager.uninstallWeChatTweak()
+      await checkStatus()
     } catch (error) {
-      console.error("Failed to uninstall WeChatTweak:", error);
+      console.error("Failed to uninstall WeChatTweak:", error)
     }
-  };
+  }
 
   const handleRestart = async () => {
     try {
-      await WeChatManager.restartWeChat();
-      setTimeout(checkStatus, 2000);
+      await WeChatManager.restartWeChat()
+      setTimeout(checkStatus, 2000)
     } catch (error) {
-      console.error("Failed to restart WeChat:", error);
+      console.error("Failed to restart WeChat:", error)
     }
-  };
+  }
 
   return (
     <List isLoading={state.isLoading} searchBarPlaceholder="Manage WeChatTweak...">
@@ -289,7 +289,7 @@ function ManageTweak() {
         />
         <List.Item
           icon={{ source: Icon.Bug }}
-          title="Report an WeChat Raycast Extension Issue"
+          title="Report a WeChat Raycast Extension Issue"
           actions={
             <ActionPanel>
               <Action title="Open Issue Page" onAction={() => open("https://github.com/RaffeYang/wechat/issues")} />
@@ -298,7 +298,7 @@ function ManageTweak() {
         />
         <List.Item
           icon={{ source: Icon.Bug }}
-          title="Report an WeChatTweak Issue"
+          title="Report a WeChatTweak Issue"
           actions={
             <ActionPanel>
               <Action
@@ -310,7 +310,7 @@ function ManageTweak() {
         />
       </List.Section>
     </List>
-  );
+  )
 }
 
-export default ManageTweak;
+export default ManageTweak
