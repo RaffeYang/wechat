@@ -2,17 +2,10 @@ import { Action, ActionPanel, closeMainWindow, environment, Icon, List, showToas
 import path from "path"
 import { storageService } from "../services/storageService"
 import { wechatService } from "../services/wechatService"
-import { SearchResult } from "../types"
+import GenerateMessageForm from "../tools/generateMessageForm"
+import { SearchListItemProps } from "../types"
 
-interface SearchListItemProps {
-  searchResult: SearchResult
-  isPinned: boolean
-  onTogglePin: () => void
-  onClearHistory: () => void
-  onGenerateAiMessage: () => void // 新增的属性
-}
-
-export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHistory, onGenerateAiMessage }: SearchListItemProps) {
+export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHistory }: SearchListItemProps) {
   const defaultAvatarPath = path.join(environment.assetsPath, "avatar.png")
 
   async function startWeChat() {
@@ -22,7 +15,7 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
       await closeMainWindow({ clearRootSearch: true })
     } catch (error) {
       console.error("Failed to open WeChat chat:", error)
-      showToast({
+      await showToast({
         style: Toast.Style.Failure,
         title: "Failed to open WeChat chat",
         message: String(error),
@@ -36,7 +29,6 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
   return (
     <List.Item
       title={title}
-      // subtitle={searchResult.subtitle}
       accessories={[
         {
           text: searchResult.arg,
@@ -47,38 +39,44 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
       actions={
         <ActionPanel>
           <ActionPanel.Section>
-            <Action icon={Icon.Message} title="聊天" onAction={startWeChat} />
-            <Action icon={Icon.Wand} title="生成 AI 消息" onAction={onGenerateAiMessage} shortcut={{ modifiers: ["cmd"], key: "g" }} />
+            <Action icon={Icon.Message} title="Chat" onAction={startWeChat} />
+            <Action.Push
+              title="Generate AI Message"
+              icon={Icon.Wand}
+              target={<GenerateMessageForm contactName={title} contactId={searchResult.arg} />}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "a" }}
+            />
             <Action.CopyToClipboard
               icon={Icon.Clipboard}
-              title="复制微信 ID"
+              title="Copy WeChat ID"
               content={searchResult.arg}
               shortcut={{ modifiers: ["cmd"], key: "c" }}
             />
-            <Action.CopyToClipboard
-              icon={Icon.Clipboard}
-              title="复制快速访问 URL"
-              content={searchResult.url}
-              shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-            />
+          </ActionPanel.Section>
+
+          <ActionPanel.Section>
             <Action
               icon={isPinned ? Icon.PinDisabled : Icon.Pin}
-              title={isPinned ? "取消置顶联系人" : "置顶联系人"}
-              onAction={onTogglePin}
+              title={isPinned ? "Unpin Contact" : "Pin Contact"}
               shortcut={{ modifiers: ["cmd", "shift"], key: "p" }}
+              onAction={onTogglePin}
             />
             <Action
               icon={Icon.Trash}
-              title="清除搜索历史"
+              title="Clear Search History"
               onAction={onClearHistory}
               shortcut={{ modifiers: ["cmd", "shift"], key: "x" }}
             />
-            <Action.OpenInBrowser
-              title="功能请求"
-              url="https://github.com/raffeyang/wechat"
-              shortcut={{ modifiers: ["cmd"], key: "h" }}
-            />
           </ActionPanel.Section>
+
+          {/*          <ActionPanel.Section>
+            <Action.Push
+              title="Search Friend with AI"
+              icon={Icon.MagnifyingGlass}
+              target={<WeChatAI />}
+              shortcut={{ modifiers: ["cmd"], key: "s" }}
+            />
+          </ActionPanel.Section>*/}
         </ActionPanel>
       }
     />

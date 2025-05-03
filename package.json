@@ -30,7 +30,7 @@
   ],
   "tools": [
     {
-      "name": "wechat-ai",
+      "name": "wechatAI",
       "title": "WeChat AI",
       "description": "Search and chat with WeChat contacts using natural language.\nGenerate AI chat content."
     }

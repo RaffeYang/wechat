@@ -1,4 +1,4 @@
-import { AI, Clipboard, confirmAlert, launchCommand, LaunchType, List, showToast, Toast } from "@raycast/api"
+import { Action, ActionPanel, AI, Clipboard, confirmAlert, launchCommand, LaunchType, List, showToast, Toast } from "@raycast/api"
 import { useEffect, useState } from "react"
 import { SearchListItem } from "./components/searchListltem"
 import { useSearch } from "./hooks/useSearch"
@@ -29,24 +29,24 @@ export default function Command() {
   // Analyze query intent using AI
   const processAiQuery = async (text: string) => {
     if (!text) return
-    
+
     setAiProcessing(true)
     try {
       // Using AI to extract search keywords
       const response = await AI.ask(`
         如果这个查询是在寻找一个微信联系人，请提取出联系人的名字或关键词。
-        如果不是在寻找联系人，请回复 "NO_SEARCH_INTENT"。
+        如果不是在寻找联系人，请回复 "请输入和联系人相关的问题"。
         
         查询: "${text}"
         
-        只返回联系人名字或关键词，不要添加任何其他文字。如果没有搜索意图，只返回 "NO_SEARCH_INTENT"。
+        只返回联系人名字或关键词，不要添加任何其他文字。如果没有搜索意图，只返回 "不支持的搜索内容"。
       `)
-      
+
       const searchKeyword = response.trim()
       if (searchKeyword && searchKeyword !== "NO_SEARCH_INTENT") {
         // Search contacts using extracted keywords
         search(searchKeyword)
-        
+
         await showToast({
           style: Toast.Style.Success,
           title: `AI Search`,
@@ -72,26 +72,26 @@ export default function Command() {
         style: Toast.Style.Animated,
         title: "AI Generating Message...",
       })
-      
+
       const response = await AI.ask(`
         请为我生成一条发送给 ${contactName} 的微信消息。
         生成一条自然、友好、简洁的消息。
         直接给出消息内容，不要添加任何前缀或说明。
       `)
-      
+
       // Copy to Clipboard
       await Clipboard.copy(response.trim())
-      
+
       await showToast({
         style: Toast.Style.Success,
-        title: "消息已生成",
-        message: "内容已复制到剪贴板",
+        title: "Message Generated",
+        message: "Content copied to clipboard",
       })
     } catch (error) {
       console.error("Failed to generate AI message:", error)
       showToast({
         style: Toast.Style.Failure,
-        title: "生成消息失败",
+        title: "Failed to generate message",
         message: String(error),
       })
     }
@@ -106,11 +106,11 @@ export default function Command() {
     } catch (error) {
       console.error("Failed to launch manageTweak:", error)
 
-      // 如果无法自动打开，显示提示
+      // If it cannot be opened automatically, display a prompt
       await showToast({
         style: Toast.Style.Failure,
-        title: "无法打开 WeChatTweak 管理器",
-        message: "请手动打开 WeChatTweak 管理器",
+        title: "Unable to open WeChat Tweak Manager",
+        message: "Please open WeChatTweak Manager manually",
       })
     }
   }
@@ -120,57 +120,57 @@ export default function Command() {
       let requirementsMessage = ""
       let shouldOpenManager = false
 
-      // 检查 WeChat 是否已安装
+      // Check if WeChat is installed
       const isWeChatInstalled = WeChatManager.isWeChatInstalled()
       if (!isWeChatInstalled) {
-        requirementsMessage = "未安装 WeChat。是否打开 WeChatTweak 管理器进行安装？"
+        requirementsMessage = "WeChat is not installed. Open WeChatTweak Manager to install it?"
         shouldOpenManager = true
       }
-      // 检查 WeChat 是否正在运行
+      // Check if WeChat is running
       else if (!WeChatManager.isWeChatRunning()) {
-        requirementsMessage = "WeChat 未运行。是否打开 WeChatTweak 管理器启动它？"
+        requirementsMessage = "WeChat is not running. Do you want to open WeChatTweak Manager to start it?"
         shouldOpenManager = true
       }
-      // 检查 WeChatTweak 是否已安装
+      // Check if WeChatTweak is installed
       else if (!WeChatManager.isWeChatTweakInstalled()) {
-        requirementsMessage = "未安装 WeChatTweak。是否打开 WeChatTweak 管理器进行安装？"
+        requirementsMessage = "WeChatTweak is not installed. Open WeChatTweak Manager to install it?"
         shouldOpenManager = true
       }
-      // 检查 WeChatTweak 是否已安装
+      // Check if WeChatTweak is installed
       else {
         try {
           const isServiceRunning = await WeChatManager.isWeChatServiceRunning()
           if (!isServiceRunning) {
             requirementsMessage =
-              "WeChat 服务未运行。是否打开 WeChatTweak 管理器解决此问题？"
+              "WeChat service is not running. Open WeChat Tweak Manager to fix this problem?"
             shouldOpenManager = true
           }
         } catch (serviceError) {
           console.error("Error checking WeChat service:", serviceError)
           requirementsMessage =
-            "检查 WeChat 服务失败。是否打开 WeChatTweak 管理器解决此问题？"
+            "Checking WeChat service failed. Open WeChat Tweak Manager to fix this?"
           shouldOpenManager = true
         }
       }
 
       if (shouldOpenManager) {
-        // 如果环境不满足，显示确认对话框
+        // If the environment is not satisfied, a confirmation dialog box is displayed
         setIsInitializing(false)
         setEnvironmentReady(false)
 
-        // 使用 confirmAlert 并处理返回值
+        // Use confirmAlert and handle the return value
         const confirmed = await confirmAlert({
-          title: "环境未就绪",
+          title: "Environment not ready",
           message: requirementsMessage,
           primaryAction: {
-            title: "打开 WeChatTweak 管理器",
+            title: "Open WeChat Tweak Manager",
           },
           dismissAction: {
-            title: "取消",
+            title: "Cancel",
           },
         })
 
-        // 如果用户点击主要操作按钮，打开管理 WeChatTweak 命令
+        // If the user clicks the primary action button, open the Manage WeChatTweak command
         if (confirmed) {
           await openManageTweak()
         }
@@ -178,7 +178,7 @@ export default function Command() {
         return
       }
 
-      // 所有条件都满足
+      // All conditions are met
       setEnvironmentReady(true)
       setIsInitializing(false)
     } catch (error) {
@@ -186,15 +186,15 @@ export default function Command() {
       setIsInitializing(false)
       setEnvironmentReady(false)
 
-      // 显示错误消息并提供打开管理界面的选项
+      // Display an error message and provide an option to open the management interface
       const confirmed = await confirmAlert({
-        title: "检查要求时出错",
-        message: `检查要求时发生错误：${error}。是否打开 WeChatTweak 管理器解决此问题？`,
+        title: "Error checking request",
+        message: `An error occurred while checking requirements: ${error}. Open WeChatTweak Manager to fix this?`,
         primaryAction: {
-          title: "打开 WeChatTweak 管理器",
+          title: "Open WeChat Tweak Manager",
         },
         dismissAction: {
-          title: "取消",
+          title: "Cancel",
         },
       })
 
@@ -217,8 +217,8 @@ export default function Command() {
     return (
       <List isLoading={true}>
         <List.EmptyView
-          title="正在检查要求..."
-          description="请稍候，我们正在检查 WeChat 和 WeChatTweak 安装情况。"
+          title="Checking requirements..."
+          description="Please wait while we check WeChat and WeChatTweak installation."
         />
       </List>
     )
@@ -228,12 +228,18 @@ export default function Command() {
     return (
       <List>
         <List.EmptyView
-          title="环境未就绪"
-          description="WeChat 或 WeChatTweak 未正确设置。请使用 WeChatTweak 管理器解决此问题。"
+          title="Environment not ready"
+          description="WeChat or WeChatTweak is not set up correctly. Please use WeChatTweak Manager to resolve this issue."
           actions={
-            <ActionPanel>
-              <ActionPanel.Item title="打开 WeChatTweak 管理器" onAction={openManageTweak} />
-            </ActionPanel>
+            <ActionPanel.Section>
+              <Action
+                title="Open WeChatTweak Manager"
+                icon="wechat.png"
+                onAction={async () => {
+                  await openManageTweak()
+                }}
+              />
+            </ActionPanel.Section>
           }
         />
       </List>
@@ -244,27 +250,31 @@ export default function Command() {
     <List
       isLoading={state.isLoading || aiProcessing}
       onSearchTextChange={(text) => {
-        // 检查这是否可能是 AI 查询
-        if (text.toLowerCase().includes("搜索") || 
-          text.toLowerCase().includes("查找") || 
-          text.toLowerCase().includes("找")) {
+        // Check if this might be an AI query
+        if (
+          text.toLowerCase().includes("搜索") ||
+          text.toLowerCase().includes("查找") ||
+          text.toLowerCase().includes("找")
+        ) {
           setAiQuery(text)
         } else {
           search(text)
         }
       }}
-      searchBarPlaceholder="搜索微信联系人或使用自然语言 (例如: '搜索李建国')"
+      searchBarPlaceholder="支持名字、拼音或者AI自然语言搜索..."
       throttle
     >
       {pinnedContacts.length > 0 && (
-        <List.Section title="置顶联系人" subtitle={String(pinnedContacts.length)}>
+        <List.Section title="Pin Contact" subtitle={String(pinnedContacts.length)}>
           {pinnedContacts.map((contact) => (
             <SearchListItem
               key={`pinned-${contact.arg}`}
               searchResult={contact}
               isPinned={true}
               onTogglePin={async () => {
-                const newPinnedContacts = pinnedContacts.filter((c) => c.arg !== contact.arg)
+                const newPinnedContacts = pinnedContacts.filter(
+                  (c) => c.arg !== contact.arg
+                )
                 setPinnedContacts(newPinnedContacts)
                 await storageService.setPinnedContacts(newPinnedContacts)
               }}
@@ -276,9 +286,11 @@ export default function Command() {
       )}
 
       {state.recentContacts.length > 0 && state.searchText === "" && (
-        <List.Section title="最近联系人" subtitle={String(state.recentContacts.length)}>
+        <List.Section title="Recent Contacts" subtitle={String(state.recentContacts.length)}>
           {state.recentContacts.map((contact) => {
-            const isAlreadyPinned = pinnedContacts.some((pinned) => pinned.arg === contact.arg)
+            const isAlreadyPinned = pinnedContacts.some(
+              (pinned) => pinned.arg === contact.arg
+            )
             if (isAlreadyPinned) {
               return null
             }
@@ -301,9 +313,11 @@ export default function Command() {
         </List.Section>
       )}
 
-      <List.Section title="联系人" subtitle={String(state.items.length)}>
+      <List.Section title="Contacts" subtitle={String(state.items.length)}>
         {state.items.map((searchResult) => {
-          const isAlreadyPinned = pinnedContacts.some((contact) => contact.arg === searchResult.arg)
+          const isAlreadyPinned = pinnedContacts.some(
+            (contact) => contact.arg === searchResult.arg
+          )
           if (isAlreadyPinned) {
             return null
           }
@@ -327,6 +341,3 @@ export default function Command() {
     </List>
   )
 }
-
-import { ActionPanel } from "@raycast/api"
-
