@@ -1,17 +1,14 @@
 import { confirmAlert, showToast, Toast } from "@raycast/api";
-import { execSync, spawn } from "child_process";
+import { execSync } from "child_process";
 import * as fs from "fs";
 import fetch from "node-fetch";
-import { EnvironmentDetector } from "./environmentDetector";
+import * as os from "os";
+import * as path from "path";
 
 export class WeChatManager {
   private static readonly WECHAT_PATHS = {
     app: ["/Applications/WeChat.app", "/Applications/微信.app"],
-    cli: [
-      `${EnvironmentDetector.getHomebrewBinPath()}/wechattweak-cli`,
-      "/usr/local/bin/wechattweak-cli",
-      "/opt/homebrew/bin/wechattweak-cli",
-    ],
+    cli: ["/usr/local/bin/wechattweak-cli", "/opt/homebrew/bin/wechattweak-cli"],
     framework: (appPath: string) => [
       `${appPath}/Contents/MacOS/WeChatTweak.framework`,
       `${appPath}/Contents/Frameworks/WeChatTweak.framework`,
@@ -19,34 +16,13 @@ export class WeChatManager {
     binary: (appPath: string) => `${appPath}/Contents/MacOS/WeChat`,
   };
 
-  /**
-   * Promise with timeout
-   * @param promise original Promise
-   * @param timeoutMs timeout (milliseconds)
-   * @param errorMessage timeout error message
-   */
-  private static async withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number = 5000,
-    errorMessage: string = "Operation timed out",
-  ): Promise<T> {
-    let timeoutId: NodeJS.Timeout;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error(errorMessage));
-      }, timeoutMs);
-    });
-
-    try {
-      return await Promise.race([promise, timeoutPromise]);
-    } finally {
-      clearTimeout(timeoutId!);
-    }
-  }
-
   static isHomebrewInstalled(): boolean {
-    return EnvironmentDetector.isHomebrewInstalled();
+    try {
+      const output = execSync("command -v brew").toString();
+      return output.includes("/brew");
+    } catch {
+      return false;
+    }
   }
 
   static getWeChatPath(): string | null {
@@ -68,29 +44,27 @@ export class WeChatManager {
 
   static async isWeChatServiceRunning(): Promise<boolean> {
     try {
-      return await this.withTimeout(
-        (async () => {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1000);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
 
-            const response = await fetch("http://localhost:48065/wechat/search?keyword=", {
-              method: "GET",
-              signal: controller.signal,
-            });
+      const response = await fetch("http://localhost:48065/wechat/search?keyword=", {
+        method: "GET",
+        signal: controller.signal,
+      });
 
-            clearTimeout(timeoutId);
-            return response.ok;
-          } catch {
-            return false;
-          }
-        })(),
-        2000,
-        "Service check timed out",
-      );
-    } catch (error) {
-      console.error("Error checking WeChat service:", error);
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch {
       return false;
+    }
+  }
+
+  private static async executeCommand(command: string): Promise<string> {
+    try {
+      return execSync(command, { encoding: "utf8", maxBuffer: 5 * 1024 * 1024 });
+    } catch (error) {
+      console.error("Command failed:", command, error);
+      throw error;
     }
   }
 
@@ -181,9 +155,6 @@ export class WeChatManager {
 
   static async installWeChatTweak(): Promise<void> {
     try {
-      // Make sure the PATH environment variable is correct
-      EnvironmentDetector.fixPath();
-
       if (!this.isHomebrewInstalled()) {
         await showToast({
           style: Toast.Style.Failure,
@@ -231,85 +202,107 @@ export class WeChatManager {
       // Install WeChatTweak-cli
       console.log("Installing wechattweak-cli...");
       try {
-        // Check if it is installed
+        // Check if already installed
         const cliPath = this.WECHAT_PATHS.cli.find(fs.existsSync);
         if (!cliPath) {
-          // Use the correct Homebrew path
-          const brewBin = EnvironmentDetector.getHomebrewBinPath() + "/brew";
-          console.log(`Running: ${brewBin} install sunnyyoung/repo/wechattweak-cli`);
-
-          // Execute brew install in a non-blocking manner
-          const brewProcess = spawn(brewBin, ["install", "sunnyyoung/repo/wechattweak-cli"], {
-            stdio: "inherit",
-          });
-
-          // Wait for brew install to complete
-          await new Promise<void>((resolve, reject) => {
-            brewProcess.on("close", (code: number) => {
-              if (code === 0) {
-                resolve();
-              } else {
-                reject(new Error(`Brew install failed with code ${code}`));
-              }
-            });
-
-            brewProcess.on("error", (err: Error) => {
-              reject(err);
-            });
-          });
+          const brewOutput = await this.executeCommand("brew install sunnyyoung/repo/wechattweak-cli");
+          console.log("Brew install output:", brewOutput);
         } else {
           console.log("WeChatTweak CLI already installed at:", cliPath);
         }
       } catch (error) {
         console.error("Failed to install wechattweak-cli:", error);
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to install wechattweak-cli",
-          message: error instanceof Error ? error.message : String(error),
-        });
-        return;
+        throw new Error("Failed to install wechattweak-cli");
       }
 
-      // Check whether the CLI is installed successfully
+      // Check if CLI is installed successfully
       const cliPath = this.WECHAT_PATHS.cli.find(fs.existsSync);
       if (!cliPath) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "WeChatTweak CLI installation failed",
-          message: "CLI tool not found after installation",
-        });
-        return;
+        throw new Error("WeChatTweak CLI installation failed - CLI not found");
       }
       console.log("Found CLI at:", cliPath);
 
-      // Use non-blocking method to open Terminal and execute commands
-      const installCommand = `osascript -e 'tell application "Terminal" to do script "echo \\"Installing WeChatTweak...\\" && sudo ${cliPath} install && echo \\"\\n\\nInstallation completed. You can close this window.\\" && exit"'`;
+      // Install WeChatTweak using official method
+      console.log("Installing WeChatTweak using official method...");
+      try {
+        // Create a temporary shell script with installation commands
+        const installScript = `
+#!/bin/bash
+set -e
 
-      console.log("Running install command in Terminal");
+# Get current user
+CURRENT_USER=$(whoami)
 
-      // Use spawn instead of execSync to avoid blocking
-      const process = spawn("bash", ["-c", installCommand], {
-        detached: true,
-        stdio: "ignore",
-      });
+# Print debug info
+echo "Current user: $CURRENT_USER"
+echo "WeChat path: ${this.getWeChatPath()}"
 
-      // Detach the child process and let it run in the background
-      process.unref();
+# Use sudo to execute wechattweak-cli install
+echo "Running: sudo ${cliPath} install"
+sudo "${cliPath}" install
 
+# Check installation result
+echo "Installation completed, checking result..."
+`;
+
+        // Create temporary script file
+        const tempScriptPath = path.join(os.tmpdir(), `wechat_install_${Date.now()}.sh`);
+        fs.writeFileSync(tempScriptPath, installScript);
+        fs.chmodSync(tempScriptPath, 0o755);
+
+        // Open Terminal and execute script
+        console.log("Opening Terminal to run installation script...");
+        const terminalCommand = `osascript -e 'tell application "Terminal" to do script "clear && echo \\"Installing WeChatTweak...\\" && sh ${tempScriptPath} && echo \\"\\n\\nInstallation completed. You can close this window.\\" && exit"'`;
+
+        execSync(terminalCommand);
+
+        // Notify user to complete installation in Terminal
+        await showToast({
+          style: Toast.Style.Success,
+          title: "Installation started in Terminal",
+          message: "Please complete the installation in the Terminal window",
+        });
+
+        // Wait for user to complete installation in Terminal
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Clean up temporary script
+        try {
+          fs.unlinkSync(tempScriptPath);
+        } catch (e) {
+          console.error("Failed to clean up temp script:", e);
+        }
+      } catch (error) {
+        console.error("Failed to start installation in Terminal:", error);
+        throw new Error("Failed to start installation in Terminal");
+      }
+
+      // Verify installation
+      console.log("Verifying installation...");
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        if (await this.verifyWeChatTweakInstallation()) {
+          await showToast({
+            style: Toast.Style.Success,
+            title: "WeChatTweak installed successfully",
+            message: "Please restart WeChat to apply changes",
+          });
+          return;
+        }
+
+        console.log(`Installation verification attempt ${attempts + 1}/${maxAttempts} failed, waiting...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+      }
+
+      // If verification fails, prompt user to manually verify
       await showToast({
-        style: Toast.Style.Success,
-        title: "Installation started in Terminal",
-        message: "Please complete the process in the Terminal window",
+        style: Toast.Style.Failure,
+        title: "Installation status unknown",
+        message: "Please check Terminal for installation status",
       });
-
-      // Prompt the user to manually refresh the status after the installation is complete
-      await showToast({
-        style: Toast.Style.Success,
-        title: "After installation completes",
-        message: "Please click 'Refresh Status' to update",
-      });
-
-      return;
     } catch (error) {
       console.error("Installation error:", error);
       await showToast({
@@ -323,9 +316,6 @@ export class WeChatManager {
 
   static async uninstallWeChatTweak(): Promise<void> {
     try {
-      // Make sure the PATH environment variable is correct
-      EnvironmentDetector.fixPath();
-
       if (this.isWeChatRunning()) {
         const shouldContinue = await confirmAlert({
           title: "WeChat is running",
@@ -356,46 +346,104 @@ export class WeChatManager {
         }
       }
 
-      // Finding the CLI Tools Path
-      const cliPath = this.WECHAT_PATHS.cli.find(fs.existsSync);
-      if (!cliPath) {
+      await showToast({
+        style: Toast.Style.Animated,
+        title: "Uninstalling WeChatTweak...",
+      });
+
+      // Uninstall WeChatTweak using official method
+      console.log("Uninstalling WeChatTweak using official method...");
+      try {
+        const cliPath = this.WECHAT_PATHS.cli.find(fs.existsSync);
+        if (!cliPath) {
+          throw new Error("WeChatTweak CLI not found");
+        }
+
+        // Create a temporary shell script with uninstallation commands
+        const uninstallScript = `
+#!/bin/bash
+set -e
+
+# Get current user
+CURRENT_USER=$(whoami)
+
+# Print debug info
+echo "Current user: $CURRENT_USER"
+echo "WeChat path: ${this.getWeChatPath()}"
+
+# Use sudo to execute wechattweak-cli uninstall
+echo "Running: sudo ${cliPath} uninstall"
+sudo "${cliPath}" uninstall
+
+# Check uninstallation result
+echo "Uninstallation completed, checking result..."
+`;
+
+        // Create temporary script file
+        const tempScriptPath = path.join(os.tmpdir(), `wechat_uninstall_${Date.now()}.sh`);
+        fs.writeFileSync(tempScriptPath, uninstallScript);
+        fs.chmodSync(tempScriptPath, 0o755);
+
+        // Open Terminal and execute script
+        console.log("Opening Terminal to run uninstallation script...");
+        const terminalCommand = `osascript -e 'tell application "Terminal" to do script "clear && echo \\"Uninstalling WeChatTweak...\\" && sh ${tempScriptPath} && echo \\"\\n\\nUninstallation completed. You can close this window.\\" && exit"'`;
+
+        execSync(terminalCommand);
+
+        // Notify user to complete uninstallation in Terminal
         await showToast({
-          style: Toast.Style.Failure,
-          title: "WeChatTweak CLI not found",
-          message: "Cannot proceed with uninstallation",
+          style: Toast.Style.Success,
+          title: "Uninstallation started in Terminal",
+          message: "Please complete the uninstallation in the Terminal window",
         });
-        return;
+
+        // Wait for user to complete uninstallation in Terminal
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        // Clean up temporary script
+        try {
+          fs.unlinkSync(tempScriptPath);
+        } catch (e) {
+          console.error("Failed to clean up temp script:", e);
+        }
+      } catch (error) {
+        console.error("Failed to start uninstallation in Terminal:", error);
+        throw new Error("Failed to start uninstallation in Terminal");
       }
 
-      // Open Terminal and execute the command in a non-blocking manner
-      // This way Raycast will not wait for the command to complete
-      const uninstallCommand = `osascript -e 'tell application "Terminal" to do script "echo \\"Uninstalling WeChatTweak...\\" && sudo ${cliPath} uninstall && echo \\"\\n\\nUninstallation completed. You can close this window.\\" && exit"'`;
+      // Uninstall CLI tool
+      console.log("Removing wechattweak-cli...");
+      try {
+        await this.executeCommand("brew uninstall sunnyyoung/repo/wechattweak-cli");
+      } catch (error) {
+        console.error("Failed to uninstall wechattweak-cli:", error);
+      }
 
-      console.log("Running uninstall command in Terminal");
+      // Verify uninstallation
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      // Use spawn instead of execSync to avoid blocking
-      const process = spawn("bash", ["-c", uninstallCommand], {
-        detached: true,
-        stdio: "ignore",
-      });
+      while (attempts < maxAttempts) {
+        if (!(await this.verifyWeChatTweakInstallation())) {
+          await showToast({
+            style: Toast.Style.Success,
+            title: "WeChatTweak uninstalled successfully",
+            message: "Please restart WeChat to apply changes",
+          });
+          return;
+        }
 
-      // Detach the child process and let it run in the background
-      process.unref();
+        console.log(`Uninstallation verification attempt ${attempts + 1}/${maxAttempts} failed, waiting...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+      }
 
+      // If verification fails, prompt user to manually verify
       await showToast({
-        style: Toast.Style.Success,
-        title: "Uninstallation started in Terminal",
-        message: "Please complete the process in the Terminal window",
+        style: Toast.Style.Failure,
+        title: "Uninstallation status unknown",
+        message: "Please check Terminal for uninstallation status",
       });
-
-      // Prompt the user to manually refresh the status after uninstallation is complete
-      await showToast({
-        style: Toast.Style.Success,
-        title: "After uninstallation completes",
-        message: "Please click 'Refresh Status' to update",
-      });
-
-      return;
     } catch (error) {
       console.error("Uninstallation error:", error);
       await showToast({
@@ -434,7 +482,7 @@ export class WeChatManager {
 
       execSync(`open "${wechatPath}"`);
 
-      // Waiting for the service to start
+      // Wait for service to start
       let attempts = 0;
       while (attempts < 15) {
         if (await this.isWeChatServiceRunning()) {
