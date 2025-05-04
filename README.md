@@ -49,8 +49,6 @@ A [Raycast](https://www.raycast.com) extension for WeChat to quickly search your
 
 `npm install && npm run dev`
 
-## License
-
 ## Note
 ### Multi-Language Support
 
@@ -63,6 +61,8 @@ While it's technically possible to add Simplified Chinese support to this extens
 ### WeChat Version
 该插件当前支持微信4.0以下版本，微信4.0以上版本[参考这里](https://github.com/sunnyyoung/WeChatTweak-macOS/issues/832)
 
-This plug-in currently supports WeChat versions below 4.0, WeChat versions above 4.0 [refer here](https://github.com/sunnyyoung/WeChatTweak-macOS/issues/832)
+This extension currently supports WeChat versions below 4.0, WeChat versions above 4.0 [refer here](https://github.com/sunnyyoung/WeChatTweak-macOS/issues/832)
+
+## License
 
 [MIT](LICENSE)
