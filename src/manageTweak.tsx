@@ -31,7 +31,7 @@ function ManageTweak() {
           error: "Loading timed out. Please try refreshing the status.",
         }));
       }
-    }, 10000); // 10 second timeout
+    }, 100000); // 100 second timeout
 
     checkStatus();
 
@@ -287,7 +287,7 @@ function ManageTweak() {
           actions={
             <ActionPanel>
               {!state.isWeChatInstalled && (
-                <Action title="Install Wechat" icon={Icon.Download} onAction={handleInstallWeChat} />
+                <Action title="Install WeChat" icon={Icon.Download} onAction={handleInstallWeChat} />
               )}
             </ActionPanel>
           }
@@ -302,7 +302,7 @@ function ManageTweak() {
           actions={
             <ActionPanel>
               {!state.isWeChatRunning && state.isWeChatInstalled && (
-                <Action title="Start Wechat" icon={Icon.Play} onAction={handleStartWeChat} />
+                <Action title="Start WeChat" icon={Icon.Play} onAction={handleStartWeChat} />
               )}
             </ActionPanel>
           }
@@ -326,7 +326,7 @@ function ManageTweak() {
               title="Uninstall WeChatTweak"
               actions={
                 <ActionPanel>
-                  <Action title="Uninstall Wechattweak" onAction={handleUninstallTweak} />
+                  <Action title="Uninstall WeChatTweak" onAction={handleUninstallTweak} />
                 </ActionPanel>
               }
             />
@@ -336,7 +336,7 @@ function ManageTweak() {
               title="Install WeChatTweak"
               actions={
                 <ActionPanel>
-                  <Action title="Install Wechattweak" onAction={handleInstallTweak} />
+                  <Action title="Install WeChatTweak" onAction={handleInstallTweak} />
                 </ActionPanel>
               }
             />
@@ -349,7 +349,7 @@ function ManageTweak() {
             subtitle="Restart to apply changes"
             actions={
               <ActionPanel>
-                <Action title="Restart Wechat" onAction={handleRestart} />
+                <Action title="Restart WeChat" onAction={handleRestart} />
               </ActionPanel>
             }
           />

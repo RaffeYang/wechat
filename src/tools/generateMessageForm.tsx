@@ -68,8 +68,8 @@ export default function GenerateMessageForm({ contactName, contactId }: Generate
     >
       <Form.TextArea
         id="userInput"
-        title="AI Role"
-        placeholder={`为${contactName}生成一段AI内容...`}
+        title="AI content"
+        placeholder={`Generate AI content for ${contactName}...`}
         value={input}
         onChange={setInput}
       />

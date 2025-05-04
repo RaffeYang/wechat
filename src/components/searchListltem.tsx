@@ -68,15 +68,6 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
               shortcut={{ modifiers: ["cmd", "shift"], key: "x" }}
             />
           </ActionPanel.Section>
-
-          {/*          <ActionPanel.Section>
-            <Action.Push
-              title="Search Friend with AI"
-              icon={Icon.MagnifyingGlass}
-              target={<WeChatAI />}
-              shortcut={{ modifiers: ["cmd"], key: "s" }}
-            />
-          </ActionPanel.Section>*/}
         </ActionPanel>
       }
     />

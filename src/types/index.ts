@@ -34,5 +34,5 @@ export interface StateType {
 
 export interface GenerateMessageFormProps {
   contactName: string;
-  contactId: string; // Used to call the chat function
+  contactId: string;
 }

@@ -30,49 +30,137 @@ export default function Command() {
     loadPinnedContacts();
   }, []);
 
-  // Add this new effect to handle AI queries
+  // Handle AI query
   useEffect(() => {
     if (aiQuery && environmentReady && !aiProcessing) {
       processAiQuery(aiQuery);
+      // Reset aiQuery to avoid repeated processing
+      setAiQuery("");
     }
   }, [aiQuery, environmentReady, aiProcessing]);
 
-  // Analyze query intent using AI
+  // Analyze query intent and extract search keywords
   const processAiQuery = async (text: string) => {
     if (!text) return;
 
     setAiProcessing(true);
     try {
-      // Using AI to extract search keywords
+      console.log("Processing AI query:", text);
+
+      // Use AI to extract search intent and conditions
       const response = await AI.ask(`
-        如果这个查询是在寻找一个微信联系人，请提取出联系人的名字或关键词。
-        如果不是在寻找联系人，请回复 "请输入和联系人相关的问题"。
+        Analyze the following WeChat contact search query and extract search conditions and keywords.
         
-        查询: "${text}"
+        Query: "${text}"
         
-        只返回联系人名字或关键词，不要添加任何其他文字。如果没有搜索意图，只返回 "不支持的搜索内容"。
+        If searching for a surname, return format: {"type": "surname", "value": "surname"}
+        If searching for names containing specific characters, return format: {"type": "contains", "value": "characters"}
+        If searching for names of a specific length, return format: {"type": "length", "value": number}
+        If it's another search condition, return format: {"type": "keyword", "value": "keyword"}
+        If search intent cannot be recognized, return: {"type": "unknown"}
+        
+        Return only JSON format, don't add any other text.
       `);
 
-      const searchKeyword = response.trim();
-      if (searchKeyword && searchKeyword !== "NO_SEARCH_INTENT") {
-        // Search contacts using extracted keywords
-        search(searchKeyword);
+      console.log("AI response:", response);
+
+      try {
+        // Parse the JSON returned by AI
+        const searchIntent = JSON.parse(response.trim());
+        console.log("Parsed search intent:", searchIntent);
+
+        if (searchIntent.type === "unknown") {
+          // If search intent cannot be recognized, use the original query
+          console.log("Unrecognized search intent, using original query:", text);
+          search(text);
+          return;
+        }
+
+        // Execute different search logic based on the search type
+        switch (searchIntent.type) {
+          case "surname":
+            // Search by surname
+            console.log("Executing surname search:", searchIntent.value);
+            performSurnameSearch(searchIntent.value);
+            break;
+          case "contains":
+            // Search for names containing specific characters
+            console.log("Executing contains search:", searchIntent.value);
+            performContainsSearch(searchIntent.value);
+            break;
+          case "length":
+            // Search for names of a specific length
+            console.log("Executing length search:", searchIntent.value);
+            performLengthSearch(parseInt(searchIntent.value));
+            break;
+          default:
+            // Default keyword search
+            console.log("Executing default keyword search:", searchIntent.value);
+            search(searchIntent.value);
+            break;
+        }
 
         await showToast({
           style: Toast.Style.Success,
           title: `AI Search`,
-          message: `Search: "${searchKeyword}"`,
+          message: `Search condition: ${searchIntent.value}`,
         });
+      } catch (jsonError) {
+        // If JSON parsing fails, use the original query
+        console.error("Failed to parse AI response:", jsonError);
+        search(text);
       }
     } catch (error) {
       console.error("AI processing error:", error);
       showToast({
         style: Toast.Style.Failure,
-        title: "AI Handling failure",
+        title: "AI Processing Failed",
         message: String(error),
       });
+      // Fall back to regular search on failure
+      search(text);
     } finally {
       setAiProcessing(false);
+    }
+  };
+
+  // Search by surname
+  const performSurnameSearch = (surname: string) => {
+    // Use the original search function
+    search(surname);
+  };
+
+  // Search for names containing specific characters
+  const performContainsSearch = (keyword: string) => {
+    // Use the original search function
+    search(keyword);
+  };
+
+  // Search for names of a specific length
+  const performLengthSearch = (length: number) => {
+    // This feature is not supported by the original search, so we need special handling
+    // Get all contacts
+    const allContacts = state.items;
+
+    // Filter contacts with names of the specific length
+    const filteredContacts = allContacts.filter((contact) => {
+      // Remove non-Chinese characters and calculate length
+      const chineseName = contact.title.replace(/[^\u4e00-\u9fa5]/g, "");
+      return chineseName.length === length;
+    });
+
+    // If matching contacts are found, display the first one as the search keyword
+    if (filteredContacts.length > 0) {
+      search(filteredContacts[0].title);
+    } else {
+      // If no matches are found, display a notification
+      showToast({
+        style: Toast.Style.Failure,
+        title: "No Matching Contacts",
+        message: `No contacts found with ${length} Chinese characters in name`,
+      });
+      // Clear search results
+      search("");
     }
   };
 
@@ -85,9 +173,9 @@ export default function Command() {
       });
 
       const response = await AI.ask(`
-        请为我生成一条发送给 ${contactName} 的微信消息。
-        生成一条自然、友好、简洁的消息。
-        直接给出消息内容，不要添加任何前缀或说明。
+        Please generate a WeChat message to send to ${contactName}.
+        Generate a natural, friendly, and concise message.
+        Provide only the message content without any prefix or explanation.
       `);
 
       // Copy to Clipboard
@@ -147,7 +235,7 @@ export default function Command() {
         requirementsMessage = "WeChatTweak is not installed. Open WeChatTweak Manager to install it?";
         shouldOpenManager = true;
       }
-      // Check if WeChatTweak is installed
+      // Check if WeChatTweak service is running
       else {
         try {
           const isServiceRunning = await WeChatManager.isWeChatServiceRunning();
@@ -259,18 +347,32 @@ export default function Command() {
     <List
       isLoading={state.isLoading || aiProcessing}
       onSearchTextChange={(text) => {
-        // Check if this might be an AI query
+        // Check if this is a natural language query
         if (
+          text.toLowerCase().includes("search") ||
+          text.toLowerCase().includes("find") ||
+          text.toLowerCase().includes("look for") ||
+          text.toLowerCase().includes("surname") ||
+          text.toLowerCase().includes("name") ||
+          text.toLowerCase().includes("characters") ||
           text.toLowerCase().includes("搜索") ||
           text.toLowerCase().includes("查找") ||
-          text.toLowerCase().includes("找")
+          text.toLowerCase().includes("找") ||
+          text.toLowerCase().includes("姓") ||
+          text.toLowerCase().includes("名字") ||
+          text.toLowerCase().includes("几个字") ||
+          text.toLowerCase().includes("几位") ||
+          /^[0-9]+个字/.test(text) ||
+          /^[0-9]+位/.test(text)
         ) {
+          // If it's an AI query, set the aiQuery state
           setAiQuery(text);
         } else {
+          // Otherwise use regular search
           search(text);
         }
       }}
-      searchBarPlaceholder="支持名字、拼音或者AI自然语言搜索..."
+      searchBarPlaceholder="Support name, pinyin, or AI natural language search..."
       throttle
     >
       {pinnedContacts.length > 0 && (

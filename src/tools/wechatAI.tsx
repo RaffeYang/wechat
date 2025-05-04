@@ -1,34 +1,126 @@
-import { AI } from "@raycast/api";
-import { loadContacts } from "../services/contactLoader";
+import { AI, Tool } from "@raycast/api";
+import { contactService } from "../services/contactService";
 
-export default async function WeChatAI() {
-  console.log("=== WeChat AI Tool Launched ===");
+type Input = {
+  /**
+   * The contact description to search for
+   */
+  query: string;
+};
+
+export const confirmation: Tool.Confirmation<Input> = async (input) => {
+  return {
+    message: `Are you sure you want to search for "${input.query}"?`,
+  };
+};
+
+/**
+ * Use AI to search WeChat contacts
+ */
+export default async function tool(input: Input) {
+  // Use AI to extract search intent and conditions
+  const response = await AI.ask(`
+    Analyze the following WeChat contact search query and extract search conditions and keywords.
+    
+    Query: "${input.query}"
+    
+    If searching for a surname, return format: {"type": "surname", "value": "surname"}
+    If searching for names containing specific characters, return format: {"type": "contains", "value": "characters"}
+    If searching for names of a specific length, return format: {"type": "length", "value": number}
+    If it's another search condition, return format: {"type": "keyword", "value": "keyword"}
+    If search intent cannot be recognized, return: {"type": "unknown"}
+    
+    Return only JSON format, don't add any other text.
+  `);
 
   try {
-    // Loading contact data
-    const contacts = await loadContacts();
-    console.log(`[WeChat AI] Successfully loaded ${contacts.length} contact data.`);
+    // Parse the JSON returned by AI
+    const searchIntent = JSON.parse(response.trim());
 
-    // Retrieve a list of contact names
-    const contactNames = contacts.map((contact) => contact.title);
+    // Get all contacts
+    const allContacts = await contactService.searchContacts("", new AbortController().signal);
 
-    // Send to AI
-    const analysis = await AI.ask(`
-      以下是我的微信联系人名称列表(共${contactNames.length}人):
-      
-      ${contactNames.join("\n")}
-      
-      请记住这些联系人名称，以便回答我关于这些联系人的任何问题。
-      例如"姓杨的有几个"、"三个字的名字有哪些"等。
-      
-      现在，请简要分析一下我的联系人情况。
-    `);
+    let filteredContacts = [];
+    let searchDescription = "";
 
-    return analysis;
+    // Execute different search logic based on the search type
+    switch (searchIntent.type) {
+      case "surname":
+        // Search by surname
+        filteredContacts = allContacts.filter((contact) => {
+          return contact.title.startsWith(searchIntent.value);
+        });
+        searchDescription = `contacts with surname ${searchIntent.value}`;
+        break;
+
+      case "contains":
+        // Search for names containing specific characters
+        filteredContacts = allContacts.filter((contact) => {
+          return contact.title.includes(searchIntent.value);
+        });
+        searchDescription = `contacts with names containing "${searchIntent.value}"`;
+        break;
+
+      case "length":
+        // Search for names of a specific length
+        filteredContacts = allContacts.filter((contact) => {
+          // Remove non-Chinese characters and calculate length
+          const chineseName = contact.title.replace(/[^\u4e00-\u9fa5]/g, "");
+          return chineseName.length === parseInt(searchIntent.value);
+        });
+        searchDescription = `contacts with ${searchIntent.value} Chinese characters in name`;
+        break;
+
+      case "unknown":
+        // Unrecognized search intent
+        filteredContacts = allContacts.filter((contact) => {
+          const lowerQuery = input.query.toLowerCase();
+          return (
+            contact.title.toLowerCase().includes(lowerQuery) ||
+            contact.subtitle.toLowerCase().includes(lowerQuery) ||
+            contact.arg.toLowerCase().includes(lowerQuery)
+          );
+        });
+        searchDescription = `contacts containing "${input.query}"`;
+        break;
+
+      default:
+        // Default keyword search
+        filteredContacts = allContacts.filter((contact) => {
+          const lowerValue = searchIntent.value.toLowerCase();
+          return (
+            contact.title.toLowerCase().includes(lowerValue) ||
+            contact.subtitle.toLowerCase().includes(lowerValue) ||
+            contact.arg.toLowerCase().includes(lowerValue)
+          );
+        });
+        searchDescription = `contacts containing "${searchIntent.value}"`;
+        break;
+    }
+
+    // Format search results
+    if (filteredContacts.length === 0) {
+      return `No ${searchDescription} found.`;
+    }
+
+    // Return search results
+    return (
+      `Found ${filteredContacts.length} ${searchDescription}:\n\n` +
+      filteredContacts
+        .map((contact, index) => {
+          // Limit to displaying at most 15 results to avoid returning too much
+          if (index < 15) {
+            return `- ${contact.title} (${contact.arg})`;
+          } else if (index === 15) {
+            return `\n...and ${filteredContacts.length - 15} more contacts`;
+          }
+          return "";
+        })
+        .filter((line) => line !== "")
+        .join("\n")
+    );
   } catch (error) {
-    console.error("[WeChat AI] Execution failed：", error);
-    throw error;
-  } finally {
-    console.log("=== WeChat AI Tool Ends ===");
+    console.error("Search processing error:", error);
+    return `Search failed: ${error instanceof Error ? error.message : String(error)}\n\nPlease try using more specific search criteria.`;
   }
 }
