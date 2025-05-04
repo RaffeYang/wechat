@@ -1,30 +1,30 @@
-import { Action, ActionPanel, closeMainWindow, environment, Icon, List, showToast, Toast } from "@raycast/api"
-import path from "path"
-import { storageService } from "../services/storageService"
-import { wechatService } from "../services/wechatService"
-import GenerateMessageForm from "../tools/generateMessageForm"
-import { SearchListItemProps } from "../types"
+import { Action, ActionPanel, closeMainWindow, environment, Icon, List, showToast, Toast } from "@raycast/api";
+import path from "path";
+import { storageService } from "../services/storageService";
+import { wechatService } from "../services/wechatService";
+import GenerateMessageForm from "../tools/generateMessageForm";
+import { SearchListItemProps } from "../types";
 
 export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHistory }: SearchListItemProps) {
-  const defaultAvatarPath = path.join(environment.assetsPath, "avatar.png")
+  const defaultAvatarPath = path.join(environment.assetsPath, "avatar.png");
 
   async function startWeChat() {
     try {
-      await wechatService.startChat(searchResult.arg)
-      await storageService.addRecentContact(searchResult)
-      await closeMainWindow({ clearRootSearch: true })
+      await wechatService.startChat(searchResult.arg);
+      await storageService.addRecentContact(searchResult);
+      await closeMainWindow({ clearRootSearch: true });
     } catch (error) {
-      console.error("Failed to open WeChat chat:", error)
+      console.error("Failed to open WeChat chat:", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to open WeChat chat",
         message: String(error),
-      })
+      });
     }
   }
 
-  const title = searchResult.title || searchResult.subtitle || searchResult.arg
-  const avatarPath = searchResult.icon.path || defaultAvatarPath
+  const title = searchResult.title || searchResult.subtitle || searchResult.arg;
+  const avatarPath = searchResult.icon.path || defaultAvatarPath;
 
   return (
     <List.Item
@@ -80,5 +80,5 @@ export function SearchListItem({ searchResult, isPinned, onTogglePin, onClearHis
         </ActionPanel>
       }
     />
-  )
+  );
 }

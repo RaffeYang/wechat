@@ -1,8 +1,8 @@
-import { Action, ActionPanel, Color, Icon, List, Toast, confirmAlert, open, showToast } from "@raycast/api"
-import { useEffect, useState } from "react"
-import { StateType } from "./types"
-import { EnvironmentDetector } from "./utils/environmentDetector"
-import { WeChatManager } from "./utils/wechatManager"
+import { Action, ActionPanel, Color, Icon, List, Toast, confirmAlert, open, showToast } from "@raycast/api";
+import { useEffect, useState } from "react";
+import { StateType } from "./types";
+import { EnvironmentDetector } from "./utils/environmentDetector";
+import { WeChatManager } from "./utils/wechatManager";
 
 function ManageTweak() {
   const [state, setState] = useState<StateType>({
@@ -12,35 +12,35 @@ function ManageTweak() {
     isWeChatTweakInstalled: false,
     isHomebrewInstalled: false,
     isWeChatServiceRunning: false,
-    error: null
-  })
+    error: null,
+  });
 
   const patchPath = () => {
-    EnvironmentDetector.fixPath()
-  }
+    EnvironmentDetector.fixPath();
+  };
 
   useEffect(() => {
-    patchPath()
-    
+    patchPath();
+
     // Add timeout processing to ensure that the interface does not get stuck permanently
     const timeoutId = setTimeout(() => {
       if (state.isLoading) {
-        setState(prev => ({ 
-          ...prev, 
+        setState((prev) => ({
+          ...prev,
           isLoading: false,
-          error: "Loading timed out. Please try refreshing the status."
-        }))
+          error: "Loading timed out. Please try refreshing the status.",
+        }));
       }
-    }, 10000) // 10 second timeout
-    
-    checkStatus()
-    
-    return () => clearTimeout(timeoutId)
-  }, [])
+    }, 10000); // 10 second timeout
+
+    checkStatus();
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   const checkStatus = async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
-    
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
     try {
       // Use Promise.allSettled instead of Promise.all to ensure that the call continues even if some checks fail.
       const results = await Promise.allSettled([
@@ -48,17 +48,18 @@ function ManageTweak() {
         WeChatManager.isWeChatInstalled(),
         WeChatManager.isWeChatRunning(),
         WeChatManager.isWeChatTweakInstalled(),
-        WeChatManager.isWeChatServiceRunning().catch(() => false) 
-      ])
-      
+        WeChatManager.isWeChatServiceRunning().catch(() => false),
+      ]);
+
       // Processing results
-      const [homebrewResult, wechatInstalledResult, wechatRunningResult, tweakInstalledResult, serviceRunningResult] = results
-      
-      const isHomebrewInstalled = homebrewResult.status === 'fulfilled' ? homebrewResult.value : false
-      const isWeChatInstalled = wechatInstalledResult.status === 'fulfilled' ? wechatInstalledResult.value : false
-      const isWeChatRunning = wechatRunningResult.status === 'fulfilled' ? wechatRunningResult.value : false
-      const isWeChatTweakInstalled = tweakInstalledResult.status === 'fulfilled' ? tweakInstalledResult.value : false
-      const isWeChatServiceRunning = serviceRunningResult.status === 'fulfilled' ? serviceRunningResult.value : false
+      const [homebrewResult, wechatInstalledResult, wechatRunningResult, tweakInstalledResult, serviceRunningResult] =
+        results;
+
+      const isHomebrewInstalled = homebrewResult.status === "fulfilled" ? homebrewResult.value : false;
+      const isWeChatInstalled = wechatInstalledResult.status === "fulfilled" ? wechatInstalledResult.value : false;
+      const isWeChatRunning = wechatRunningResult.status === "fulfilled" ? wechatRunningResult.value : false;
+      const isWeChatTweakInstalled = tweakInstalledResult.status === "fulfilled" ? tweakInstalledResult.value : false;
+      const isWeChatServiceRunning = serviceRunningResult.status === "fulfilled" ? serviceRunningResult.value : false;
 
       setState({
         isLoading: false,
@@ -67,23 +68,23 @@ function ManageTweak() {
         isWeChatRunning,
         isWeChatTweakInstalled,
         isWeChatServiceRunning,
-        error: null
-      })
+        error: null,
+      });
     } catch (error) {
-      console.error("Error checking status:", error)
-      setState(prev => ({ 
-        ...prev, 
+      console.error("Error checking status:", error);
+      setState((prev) => ({
+        ...prev,
         isLoading: false,
-        error: String(error)
-      }))
-      
+        error: String(error),
+      }));
+
       await showToast({
         style: Toast.Style.Failure,
         title: "Error checking status",
         message: String(error),
-      })
+      });
     }
-  }
+  };
 
   const handleInstallHomebrew = async () => {
     try {
@@ -93,12 +94,12 @@ function ManageTweak() {
         primaryAction: {
           title: "Open Installation Page",
         },
-      })
-      await open("https://brew.sh")
+      });
+      await open("https://brew.sh");
     } catch (error) {
-      console.error("Failed to open Homebrew page:", error)
+      console.error("Failed to open Homebrew page:", error);
     }
-  }
+  };
 
   const handleInstallWeChat = async () => {
     try {
@@ -108,21 +109,21 @@ function ManageTweak() {
         primaryAction: {
           title: "Open Download Page",
         },
-      })
-      await open("https://www.wechat.com")
+      });
+      await open("https://www.wechat.com");
     } catch (error) {
-      console.error("Failed to open WeChat download page:", error)
+      console.error("Failed to open WeChat download page:", error);
     }
-  }
+  };
 
   const handleStartWeChat = async () => {
     try {
-      await WeChatManager.startWeChat()
-      setTimeout(checkStatus, 1000)
+      await WeChatManager.startWeChat();
+      setTimeout(checkStatus, 1000);
     } catch (error) {
-      console.error("Failed to start WeChat:", error)
+      console.error("Failed to start WeChat:", error);
     }
-  }
+  };
 
   const handleInstallTweak = async () => {
     try {
@@ -133,48 +134,48 @@ function ManageTweak() {
         primaryAction: {
           title: "Install",
         },
-      })
+      });
 
-      if (!confirmed) return
+      if (!confirmed) return;
 
       await showToast({
         style: Toast.Style.Animated,
         title: "Installing WeChatTweak...",
-      })
+      });
 
       // Timeout handling
-      const installPromise = WeChatManager.installWeChatTweak()
+      const installPromise = WeChatManager.installWeChatTweak();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Installation process taking too long")), 30000)
-      })
+        setTimeout(() => reject(new Error("Installation process taking too long")), 30000);
+      });
 
       try {
-        await Promise.race([installPromise, timeoutPromise])
+        await Promise.race([installPromise, timeoutPromise]);
       } catch (error) {
-        console.error("Installation error or timeout:", error)
-        
+        console.error("Installation error or timeout:", error);
+
         // If it is a timeout, provide a cancellation option
         if (String(error).includes("taking too long")) {
           await showToast({
             style: Toast.Style.Failure,
             title: "Installation is taking longer than expected",
             message: "The process continues in Terminal. Please check Terminal window.",
-          })
+          });
         } else {
-          throw error
+          throw error;
         }
       }
 
-      await checkStatus()
+      await checkStatus();
     } catch (error) {
-      console.error("Failed to install WeChatTweak:", error)
+      console.error("Failed to install WeChatTweak:", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to install WeChatTweak",
         message: String(error),
-      })
+      });
     }
-  }
+  };
 
   const handleUninstallTweak = async () => {
     try {
@@ -185,57 +186,57 @@ function ManageTweak() {
         primaryAction: {
           title: "Uninstall",
         },
-      })
+      });
 
-      if (!confirmed) return
+      if (!confirmed) return;
 
       await showToast({
         style: Toast.Style.Animated,
         title: "Uninstalling WeChatTweak...",
-      })
+      });
 
       // Timeout handling
-      const uninstallPromise = WeChatManager.uninstallWeChatTweak()
+      const uninstallPromise = WeChatManager.uninstallWeChatTweak();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Uninstallation process taking too long")), 30000)
-      })
+        setTimeout(() => reject(new Error("Uninstallation process taking too long")), 30000);
+      });
 
       try {
-        await Promise.race([uninstallPromise, timeoutPromise])
+        await Promise.race([uninstallPromise, timeoutPromise]);
       } catch (error) {
-        console.error("Uninstallation error or timeout:", error)
-        
+        console.error("Uninstallation error or timeout:", error);
+
         // If it is a timeout, provide a cancellation option
         if (String(error).includes("taking too long")) {
           await showToast({
             style: Toast.Style.Failure,
             title: "Uninstallation is taking longer than expected",
             message: "The process continues in Terminal. Please check Terminal window.",
-          })
+          });
         } else {
-          throw error
+          throw error;
         }
       }
 
-      await checkStatus()
+      await checkStatus();
     } catch (error) {
-      console.error("Failed to uninstall WeChatTweak:", error)
+      console.error("Failed to uninstall WeChatTweak:", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to uninstall WeChatTweak",
         message: String(error),
-      })
+      });
     }
-  }
+  };
 
   const handleRestart = async () => {
     try {
-      await WeChatManager.restartWeChat()
-      setTimeout(checkStatus, 2000)
+      await WeChatManager.restartWeChat();
+      setTimeout(checkStatus, 2000);
     } catch (error) {
-      console.error("Failed to restart WeChat:", error)
+      console.error("Failed to restart WeChat:", error);
     }
-  }
+  };
 
   // If there is an error, display the error message
   if (state.error) {
@@ -252,7 +253,7 @@ function ManageTweak() {
           }
         />
       </List>
-    )
+    );
   }
 
   return (
@@ -401,7 +402,7 @@ function ManageTweak() {
         />
       </List.Section>
     </List>
-  )
+  );
 }
 
-export default ManageTweak
+export default ManageTweak;

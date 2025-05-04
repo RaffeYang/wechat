@@ -1,11 +1,10 @@
-import { AI, Action, ActionPanel, Clipboard, Form, Icon, Toast, closeMainWindow, showToast } from "@raycast/api"
-import { useState } from "react"
-import { wechatService } from "../services/wechatService"
-import { GenerateMessageFormProps } from "../types"
-
+import { AI, Action, ActionPanel, Clipboard, Form, Icon, Toast, closeMainWindow, showToast } from "@raycast/api";
+import { useState } from "react";
+import { wechatService } from "../services/wechatService";
+import { GenerateMessageFormProps } from "../types";
 
 export default function GenerateMessageForm({ contactName, contactId }: GenerateMessageFormProps) {
-  const [input, setInput] = useState<string>("")
+  const [input, setInput] = useState<string>("");
 
   const handleSubmit = async () => {
     if (!input.trim()) {
@@ -13,8 +12,8 @@ export default function GenerateMessageForm({ contactName, contactId }: Generate
         style: Toast.Style.Failure,
         title: "Input cannot be empty",
         message: "Please enter the content to send.",
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -22,7 +21,7 @@ export default function GenerateMessageForm({ contactName, contactId }: Generate
       await showToast({
         style: Toast.Style.Animated,
         title: "Generating AI message...",
-      })
+      });
 
       // Call the AI API to generate the message
       const response = await AI.ask(`
@@ -30,34 +29,34 @@ export default function GenerateMessageForm({ contactName, contactId }: Generate
         User input: "${input}"
         
         Generate a natural, friendly, and concise message.
-      `)
+      `);
 
-      const generatedMessage = response.trim()
+      const generatedMessage = response.trim();
 
       // Copy the generated message to the clipboard
-      await Clipboard.copy(generatedMessage)
+      await Clipboard.copy(generatedMessage);
 
       // Show a success toast
       await showToast({
         style: Toast.Style.Success,
         title: "Message generated",
         message: "The content has been copied to the clipboard.",
-      })
+      });
 
       // Call the chat function to open the WeChat chat window
-      await wechatService.startChat(contactId)
+      await wechatService.startChat(contactId);
 
       // Close the current form window
-      await closeMainWindow({ clearRootSearch: true })
+      await closeMainWindow({ clearRootSearch: true });
     } catch (error) {
-      console.error("Failed to generate message or start chat:", error)
+      console.error("Failed to generate message or start chat:", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to generate message or start chat",
         message: String(error),
-      })
+      });
     }
-  }
+  };
 
   return (
     <Form
@@ -75,5 +74,5 @@ export default function GenerateMessageForm({ contactName, contactId }: Generate
         onChange={setInput}
       />
     </Form>
-  )
+  );
 }
